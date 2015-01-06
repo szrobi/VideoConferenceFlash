@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/halo"
+			   applicationComplete="videoConferenceApplicationCompleteHandler(event)">
+
+	<fx:Script>
+		<![CDATA[
+			import flash.events.Event;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			private var host:String;
+			private var roomId:int;
+			private var userId:int;
+			private var userName:String;
+			private var connectionToken:String;
+			
+			public function videoConferenceApplicationCompleteHandler(event:Event):void
+			{
+				try
+				{
+					init();
+				}
+				catch (error:Error)
+				{
+					JSProxy.log("Video conference video container init error: " + error);
+				}
+			}
+			
+			private function init():void
+			{
+				var params:Object = FlexGlobals.topLevelApplication.parameters;
+				host = params.host || "localhost";
+				roomId = params.roomId;
+				userId = params.userId;
+				userName = params.userName || "Joskapista";
+				connectionToken = params.connectionToken;
+				
+				JSProxy.log("Parameters parsed.");
+				
+				JSProxy.log("Host: " + host + " Room:" + roomId);
+				
+				JSProxy.event("InitComplete", null);
+				
+				publishWebcam('rtmp://localhost/oflaDemo', 'myHandle', userId, userName);
+			}
+			
+			public function publishWebcam(rtmpUrl:String, handle:String, userId:int, userName:String):void
+			{
+				JSProxy.log('Publishing to: ' + rtmpUrl);
+				try
+				{
+					var ui:StreamerUI = new StreamerUI();
+					var source:VideoSource = new VideoSource(this, ui);
+					ui.init(this, source, userId, userName, source.isCameraSupported());
+					ui.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
+						{
+							source.publishStream(rtmpUrl, handle, userId);
+							JSProxy.log("Publishing stream");
+						});
+					mainPanel.addElement(ui);
+				}
+				catch (ex:Error)
+				{
+					JSProxy.log("Unable to publish webcam" + ex);
+				}
+			
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+
+	<s:BorderContainer width="100%"
+					   height="100%"
+					   borderWeight="1"
+					   borderStyle="solid"
+					   borderColor="0x000000">
+		<s:layout>
+			<s:HorizontalLayout />
+		</s:layout>
+
+		<s:BorderContainer id="leftContainer"
+						   width="100%"
+						   height="100%"
+						   borderWeight="0"
+						   borderColor="0x000000">
+			<s:Scroller id="mainScroller"
+						width="100%"
+						height="100%"
+						horizontalScrollPolicy="off">
+				<s:Group id="mainPanel"
+						 clipAndEnableScrolling="true">
+					<s:layout>
+						<s:BasicLayout />
+					</s:layout>
+				</s:Group>
+			</s:Scroller>
+		</s:BorderContainer>
+		<s:BorderContainer id="rightContainer"
+						   visible="false"
+						   includeInLayout="false"
+						   width="100%"
+						   height="100%"
+						   borderWeight="0">
+			<s:layout>
+				<s:VerticalLayout />
+			</s:layout>
+			<s:Scroller id="rightScroller"
+						width="100%"
+						height="100%">
+				<s:Group id="rightPanel"
+						 clipAndEnableScrolling="true">
+				</s:Group>
+			</s:Scroller>
+		</s:BorderContainer>
+	</s:BorderContainer>
+</s:Application>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   creationComplete="onCreationComplete()">
+	<fx:Script>
+		<![CDATA[
+			import flash.events.Event;
+			import mx.events.FlexEvent;
+			
+			private var container:VideoContainer;
+			
+			private var userId:int;
+			private var userName:String;
+			private var videoSource:VideoSource;
+			
+			private var videoContainer:VideoContainer;
+			
+			public function init(videoContainer:VideoContainer, videoSource:VideoSource, userId:int, userName:String, hasCamera:Boolean):void
+			{
+				this.videoContainer = videoContainer;
+				this.userName = userName;
+				this.userId = userId;
+				this.videoSource = videoSource;
+			}
+			
+			public function onCreationComplete():void
+			{
+				this.width = 640;
+				this.height = 480;
+				
+				setCameraSize(this.width, this.height);
+				dispatchEvent(new FlexEvent(FlexEvent.READY));
+			}
+			
+			public function setCameraSize(width:int, height:int):void
+			{
+				this.width = width;
+				this.height = height;
+				
+				display.width = width;
+				display.height = height;
+				
+				updateUi();
+			}
+			
+			public function updateUi():void
+			{
+				if (display.videoObject != null)
+				{
+					display.videoObject.width = width;
+					display.videoObject.height = height;
+				}
+				
+				nameLabel.text = userName;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+
+	<s:BorderContainer id="mainContainer"
+					   borderWeight="1"
+					   borderStyle="solid"
+					   borderColor="#000000"
+					   backgroundColor="0xaaaaaa">
+		<s:VideoDisplay id="display"
+						x="0"
+						y="0"
+						width="640"
+						height="480"
+						autoPlay="true" />
+		<s:Image id="cameraStateIcon" />
+		<s:Label id="nameLabel"
+				 x="0"
+				 y="0"
+				 width="255"
+				 height="26"
+				 backgroundColor="#000000"
+				 color="#FFFFFF"
+				 fontSize="18"
+				 fontWeight="bold"
+				 textAlign="center"
+				 verticalAlign="middle"
+				 text="My Name" />
+	</s:BorderContainer>
+</s:Application>
