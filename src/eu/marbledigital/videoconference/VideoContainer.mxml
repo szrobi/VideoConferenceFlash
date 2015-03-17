@@ -43,6 +43,7 @@
 				JSProxy.event("InitComplete", null);
 				
 				publishWebcam('rtmp://localhost/oflaDemo', 'myHandle', userId, userName);
+				playStream('rtmp://localhost/oflaDemo', 'myHandle', userId, userName + ' loopback');
 			}
 			
 			public function publishWebcam(rtmpUrl:String, handle:String, userId:int, userName:String):void
@@ -62,9 +63,31 @@
 				}
 				catch (ex:Error)
 				{
-					JSProxy.log("Unable to publish webcam" + ex);
+					JSProxy.log("Unable to publish webcam: " + ex);
 				}
+			}
 			
+			public function playStream(rtmpUrl:String, handle:String, userId:int, userName:String):void {
+				try
+				{
+					var loopbackUi:StreamerUI = new StreamerUI();
+					var loopbackSource:VideoSource = new VideoSource(this, loopbackUi);
+					loopbackUi.init(this, loopbackSource, userId, userName, loopbackSource.isCameraSupported());
+					
+					loopbackUi.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
+						{
+							loopbackSource.playStream(rtmpUrl, handle, userId);
+							loopbackUi.setCameraSize(320, 200);
+							JSProxy.log("Playing stream");
+						});
+					
+					mainPanel.addElement(loopbackUi);
+				}
+				catch (ex:Error)
+				{
+					JSProxy.log("Unable to play stream: " + ex);
+					JSProxy.log(ex.getStackTrace());
+				}
 			}
 		]]>
 	</fx:Script>
@@ -93,7 +116,7 @@
 				<s:Group id="mainPanel"
 						 clipAndEnableScrolling="true">
 					<s:layout>
-						<s:BasicLayout />
+						<s:HorizontalLayout />
 					</s:layout>
 				</s:Group>
 			</s:Scroller>

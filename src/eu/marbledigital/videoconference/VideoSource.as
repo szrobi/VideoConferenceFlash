@@ -48,6 +48,8 @@ package eu.marbledigital.videoconference
 		private var cameraAttached:Boolean = false;
 		private var microphoneAttached:Boolean = false;
 		
+		private var isPublisher:Boolean = false;
+		
 		public function VideoSource(videoContainer:VideoContainer, streamerUi:StreamerUI)
 		{
 			this.videoContainer = videoContainer;
@@ -84,6 +86,7 @@ package eu.marbledigital.videoconference
 			this.userId = userId;
 			this.rtmpUrl = rtmpUrl;
 			this.streamHandle = handle;
+			this.isPublisher = true;
 			
 			if (!isCameraSupported())
 			{
@@ -129,6 +132,7 @@ package eu.marbledigital.videoconference
 			this.userId = userId;
 			this.rtmpUrl = rtmpUrl;
 			this.streamHandle = handle;
+			this.isPublisher = false;
 			
 			if (streamHandle == null || streamHandle == '')
 			{
@@ -146,6 +150,8 @@ package eu.marbledigital.videoconference
 			dynSrc.streamItems = videoItems;
 			
 			streamerUi.display.source = dynSrc;
+			
+			connect();
 		}
 		
 		private static function setCodecOnNs(netStream:NetStream):void
@@ -181,19 +187,30 @@ package eu.marbledigital.videoconference
 					netStream.addEventListener(NetStatusEvent.NET_STATUS, onStreamStatus);
 					netStream.addEventListener(IOErrorEvent.IO_ERROR, onStreamIOError);
 					netStream.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onStreamAsyncError);
-					
-					netStream.soundTransform = new SoundTransform();
 					setCodecOnNs(netStream);
-					netStream.publish(streamHandle, "live");
 					
-					cameraAttached = false;
-					attachCamera(true);
-					streamerUi.display.videoObject.visible = true;
-					
-					microphoneAttached = false;
-					attachMicrophone(true);
-					
-					JSProxy.event("Publishing", null);
+					if (isPublisher)
+					{
+						netStream.soundTransform = new SoundTransform();
+						netStream.publish(streamHandle, "live");
+						
+						cameraAttached = false;
+						attachCamera(true);
+						streamerUi.display.videoObject.visible = true;
+						
+						microphoneAttached = false;
+						attachMicrophone(true);
+						
+						JSProxy.event("Publishing", null);
+					} else {
+						netStream.bufferTime = 0;
+						netStream.play(streamHandle, -1);
+						
+						streamerUi.display.videoObject.attachNetStream(netStream);
+						streamerUi.display.videoObject.visible = true;
+						
+						JSProxy.event("Playing", null);
+					}
 				}
 			}
 			catch (ex:Error)
