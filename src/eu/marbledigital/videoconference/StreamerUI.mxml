@@ -71,7 +71,6 @@
 						width="640"
 						height="480"
 						autoPlay="true" />
-		<s:Image id="cameraStateIcon" />
 		<s:Label id="nameLabel"
 				 x="0"
 				 y="0"

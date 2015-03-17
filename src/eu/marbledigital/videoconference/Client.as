@@ -1,4 +1,4 @@
-package eu.marbledigital.videoconference
+	package eu.marbledigital.videoconference
 {
 	
 	/**
@@ -19,12 +19,9 @@ package eu.marbledigital.videoconference
 		
 		}
 		
-		public function onBWDone(... params):void
+		public function onBWDone(data:Object):void
 		{
-			if (params.length > 0)
-			{
-				trace("bandwidth = " + params[0] + " Kbps.");
-			}
+			trace("bandwidth = " + data.kbitDown + " Kbps.");
 		}
 	}
 

@@ -95,7 +95,7 @@ package eu.marbledigital.videoconference
 			
 			var videoItems:Vector.<DynamicStreamingVideoItem>;
 			videoItems = new Vector.<DynamicStreamingVideoItem>();
-			videoItems[0] = new DynamicStreamingVideoItem();
+			videoItems.push(new DynamicStreamingVideoItem());
 			
 			dynSrc.host = "";
 			dynSrc.streamType = StreamType.LIVE;
@@ -130,9 +130,8 @@ package eu.marbledigital.videoconference
 			this.rtmpUrl = rtmpUrl;
 			this.streamHandle = handle;
 			
-			if (streamHandle == null || streamHandle.length == 0)
+			if (streamHandle == null || streamHandle == '')
 			{
-				streamerUi.cameraStateIcon.visible = true;
 				return;
 			}
 			
@@ -140,14 +139,13 @@ package eu.marbledigital.videoconference
 			
 			var videoItems:Vector.<DynamicStreamingVideoItem>;
 			videoItems = new Vector.<DynamicStreamingVideoItem>();
-			videoItems[0] = new DynamicStreamingVideoItem();
+			videoItems.push(new DynamicStreamingVideoItem());
 			
 			dynSrc.host = "";
-			dynSrc.streamType = StreamType.LIVE;
+			dynSrc.streamType = StreamType.DVR;
 			dynSrc.streamItems = videoItems;
 			
 			streamerUi.display.source = dynSrc;
-			streamerUi.cameraStateIcon.visible = false;
 		}
 		
 		private static function setCodecOnNs(netStream:NetStream):void
