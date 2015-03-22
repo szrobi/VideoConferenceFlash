@@ -7,6 +7,9 @@
 	<fx:Script>
 		<![CDATA[
 			import flash.events.Event;
+			import flash.external.*;
+			import flash.system.Security;
+			import mx.controls.Button;
 			import mx.core.FlexGlobals;
 			import mx.events.FlexEvent;
 			private var host:String;
@@ -14,11 +17,14 @@
 			private var userId:int;
 			private var userName:String;
 			private var connectionToken:String;
+			private var notifyJS:Boolean;
 			
 			public function videoConferenceApplicationCompleteHandler(event:Event):void
 			{
 				try
 				{
+					Security.allowDomain('*');
+					Security.allowInsecureDomain('*');
 					init();
 				}
 				catch (error:Error)
@@ -33,7 +39,8 @@
 				host = params.host || "localhost";
 				roomId = params.roomId;
 				userId = params.userId;
-				userName = params.userName || "Joskapista";
+				userName = params.userName;
+				notifyJS = params.notifyJS;
 				connectionToken = params.connectionToken;
 				
 				JSProxy.log("Parameters parsed.");
@@ -41,9 +48,11 @@
 				JSProxy.log("Host: " + host + " Room:" + roomId);
 				
 				JSProxy.event("InitComplete", null);
-				
-				publishWebcam('rtmp://localhost/oflaDemo', 'myHandle', userId, userName);
-				playStream('rtmp://localhost/oflaDemo', 'myHandle', userId, userName + ' loopback');
+				ExternalInterface.addCallback("publishWebcam", publishWebcam);
+				ExternalInterface.addCallback("playStream", playStream);
+				if(notifyJS){
+				ExternalInterface.call('flashReady');
+				}
 			}
 			
 			public function publishWebcam(rtmpUrl:String, handle:String, userId:int, userName:String):void
@@ -67,7 +76,8 @@
 				}
 			}
 			
-			public function playStream(rtmpUrl:String, handle:String, userId:int, userName:String):void {
+			public function playStream(rtmpUrl:String, handle:String, userId:int, userName:String):void
+			{
 				try
 				{
 					var loopbackUi:StreamerUI = new StreamerUI();
@@ -77,7 +87,7 @@
 					loopbackUi.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
 							loopbackSource.playStream(rtmpUrl, handle, userId);
-							loopbackUi.setCameraSize(320, 200);
+							loopbackUi.setCameraSize(640, 480);
 							JSProxy.log("Playing stream");
 						});
 					

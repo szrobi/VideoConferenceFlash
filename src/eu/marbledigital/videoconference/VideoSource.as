@@ -150,7 +150,6 @@ package eu.marbledigital.videoconference
 			dynSrc.streamItems = videoItems;
 			
 			streamerUi.display.source = dynSrc;
-			
 			connect();
 		}
 		
