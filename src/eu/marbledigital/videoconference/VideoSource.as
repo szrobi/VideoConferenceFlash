@@ -8,6 +8,7 @@ package eu.marbledigital.videoconference
 	public class VideoSource
 	{
 		
+		import flash.display.InteractiveObject;
 		import flash.events.AsyncErrorEvent;
 		import flash.events.IOErrorEvent;
 		import flash.events.MouseEvent;
@@ -50,6 +51,9 @@ package eu.marbledigital.videoconference
 		
 		private var isPublisher:Boolean = false;
 		
+		private var roomId:int;
+		private var roomToken:String;
+		
 		public function VideoSource(videoContainer:VideoContainer, streamerUi:StreamerUI)
 		{
 			this.videoContainer = videoContainer;
@@ -81,12 +85,12 @@ package eu.marbledigital.videoconference
 			}
 		}
 		
-		public function publishStream(rtmpUrl:String, handle:String, userId:int):void
+		public function publishStream(rtmpUrl:String,userId:int,roomToken:String):void
 		{
 			this.userId = userId;
 			this.rtmpUrl = rtmpUrl;
-			this.streamHandle = handle;
 			this.isPublisher = true;
+			this.roomToken = roomToken;
 			
 			if (!isCameraSupported())
 			{
@@ -111,10 +115,10 @@ package eu.marbledigital.videoconference
 				
 				if (camera != null)
 				{
-					camera.setMode(640, 480, 30);
-					camera.setKeyFrameInterval(15);
+					camera.setMode(640, 480, 20);
+					camera.setKeyFrameInterval(1);
 					camera.setLoopback(false);
-					camera.setQuality(0, 0);
+					camera.setQuality(1024000, 100);
 				}
 			}
 			catch (e:Error)
@@ -127,12 +131,12 @@ package eu.marbledigital.videoconference
 			connect();
 		}
 		
-		public function playStream(rtmpUrl:String, handle:String, userId:int):void
+		public function playStream(rtmpUrl:String, userId:int,roomToken:String):void
 		{
 			this.userId = userId;
 			this.rtmpUrl = rtmpUrl;
-			this.streamHandle = handle;
 			this.isPublisher = false;
+			this.roomToken = roomToken;
 			
 			if (streamHandle == null || streamHandle == '')
 			{
@@ -157,7 +161,7 @@ package eu.marbledigital.videoconference
 		{
 			var videoStreamSettings:H264VideoStreamSettings = new H264VideoStreamSettings();
 			videoStreamSettings.setProfileLevel(H264Profile.BASELINE, H264Level.LEVEL_2_1);
-			
+			videoStreamSettings.setQuality(1024000, 100);
 			try
 			{
 				netStream.videoStreamSettings = videoStreamSettings;
@@ -201,7 +205,9 @@ package eu.marbledigital.videoconference
 						attachMicrophone(true);
 						
 						JSProxy.event("Publishing", null);
-					} else {
+					}
+					else
+					{
 						netStream.bufferTime = 0;
 						netStream.play(streamHandle, -1);
 						
@@ -273,7 +279,8 @@ package eu.marbledigital.videoconference
 			netConnection.addEventListener(NetStatusEvent.NET_STATUS, onConnectionStatus);
 			netConnection.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onConnectionAsyncError);
 			netConnection.addEventListener(IOErrorEvent.IO_ERROR, onConnectionIOError);
-			netConnection.connect(rtmpUrl);
+			netConnection.connect(rtmpUrl,{user_Id:userId,room_Token:roomToken});
+	
 		}
 		
 		/**
@@ -281,7 +288,11 @@ package eu.marbledigital.videoconference
 		 */
 		private function onStreamStatus(evt:NetStatusEvent):void
 		{
+			if (evt.info.code == "NetStream.Publish.Start") {
+			JSProxy.event("publishing", null);	
+			}
 			JSProxy.log("stream status handler called: " + evt.info.code + toString());
+			
 		}
 		
 		protected function onStreamAsyncError(evt:IOErrorEvent):void

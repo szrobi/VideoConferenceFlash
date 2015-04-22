@@ -9,15 +9,18 @@
 			import flash.events.Event;
 			import flash.external.*;
 			import flash.system.Security;
+			import flash.utils.IDataOutput;
 			import mx.controls.Button;
 			import mx.core.FlexGlobals;
 			import mx.events.FlexEvent;
-			private var host:String;
-			private var roomId:int;
+			private var roomToken:String;
 			private var userId:int;
 			private var userName:String;
 			private var connectionToken:String;
+			private var rtmpUrl:String;
 			private var notifyJS:Boolean;
+			public static var instance:eu.marbledigital.videoconference.VideoContainer;
+			
 			
 			public function videoConferenceApplicationCompleteHandler(event:Event):void
 			{
@@ -26,6 +29,7 @@
 					Security.allowDomain('*');
 					Security.allowInsecureDomain('*');
 					init();
+					instance = this;
 				}
 				catch (error:Error)
 				{
@@ -36,16 +40,16 @@
 			private function init():void
 			{
 				var params:Object = FlexGlobals.topLevelApplication.parameters;
-				host = params.host || "localhost";
-				roomId = params.roomId;
-				userId = params.userId;
-				userName = params.userName;
+				roomToken = params.roomToken;
+				userId = params.userId || 6;
+				userName = params.userName || "admin";
 				notifyJS = params.notifyJS;
 				connectionToken = params.connectionToken;
+				rtmpUrl = params.rtmpUrl || "rtmp://localhost/VideoConferenceStreaming/38";
 				
 				JSProxy.log("Parameters parsed.");
 				
-				JSProxy.log("Host: " + host + " Room:" + roomId);
+
 				
 				JSProxy.event("InitComplete", null);
 				ExternalInterface.addCallback("publishWebcam", publishWebcam);
@@ -55,7 +59,7 @@
 				}
 			}
 			
-			public function publishWebcam(rtmpUrl:String, handle:String, userId:int, userName:String):void
+			public function publishWebcam():void
 			{
 				JSProxy.log('Publishing to: ' + rtmpUrl);
 				try
@@ -65,10 +69,12 @@
 					ui.init(this, source, userId, userName, source.isCameraSupported());
 					ui.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
-							source.publishStream(rtmpUrl, handle, userId);
+							source.publishStream(rtmpUrl, userId, roomToken);
+							JSProxy.event("publishingasdasd", null);
 							JSProxy.log("Publishing stream");
 						});
 					mainPanel.addElement(ui);
+					
 				}
 				catch (ex:Error)
 				{
@@ -76,7 +82,7 @@
 				}
 			}
 			
-			public function playStream(rtmpUrl:String, handle:String, userId:int, userName:String):void
+			public function playStream(userId:int, userName:String):void
 			{
 				try
 				{
@@ -86,7 +92,7 @@
 					
 					loopbackUi.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
-							loopbackSource.playStream(rtmpUrl, handle, userId);
+							loopbackSource.playStream(rtmpUrl, userId,roomToken);
 							loopbackUi.setCameraSize(640, 480);
 							JSProxy.log("Playing stream");
 						});

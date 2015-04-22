@@ -4,7 +4,7 @@
 	/**
 	 * NetConnection client
 	 * 
-	 * @author Zsolt Petrik <petrik.zsolt@marbledigital.eu>
+	 * @author Robert Szabados
 	 */
 	public class Client
 	{
@@ -22,6 +22,11 @@
 		public function onBWDone(data:Object):void
 		{
 			trace("bandwidth = " + data.kbitDown + " Kbps.");
+		}
+		
+		public function userConnected(userId:int,userName:String):void {
+			JSProxy.log(userId + "ez a user id");
+			VideoContainer.instance.playStream(userId,userName);
 		}
 	}
 

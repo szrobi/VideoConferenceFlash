@@ -4,7 +4,7 @@ package eu.marbledigital.videoconference
 	
 	/**
 	 * ...
-	 * @author Zsolt Petrik
+	 * @author Robert Szabados
 	 */
 	public class JSProxy
 	{
