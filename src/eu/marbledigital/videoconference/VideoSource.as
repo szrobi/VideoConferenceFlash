@@ -3,7 +3,7 @@ package eu.marbledigital.videoconference
 	
 	/**
 	 * ...
-	 * @author Zsolt Petrik
+	 * @author Robert Szabados
 	 */
 	public class VideoSource
 	{
@@ -88,6 +88,7 @@ package eu.marbledigital.videoconference
 		public function publishStream(rtmpUrl:String,userId:int,roomToken:String):void
 		{
 			this.userId = userId;
+			this.streamHandle = userId.toString();
 			this.rtmpUrl = rtmpUrl;
 			this.isPublisher = true;
 			this.roomToken = roomToken;
@@ -137,6 +138,7 @@ package eu.marbledigital.videoconference
 			this.rtmpUrl = rtmpUrl;
 			this.isPublisher = false;
 			this.roomToken = roomToken;
+			this.streamHandle = userId.toString();
 			
 			if (streamHandle == null || streamHandle == '')
 			{
@@ -289,21 +291,21 @@ package eu.marbledigital.videoconference
 		private function onStreamStatus(evt:NetStatusEvent):void
 		{
 			if (evt.info.code == "NetStream.Publish.Start") {
-			JSProxy.event("publishing", null);	
+			JSProxy.event("Publishing", null);	
 			}
-			JSProxy.log("stream status handler called: " + evt.info.code + toString());
+			JSProxy.log("Stream status handler called: " + evt.info.code +" "+ toString());
 			
 		}
 		
 		protected function onStreamAsyncError(evt:IOErrorEvent):void
 		{
-			JSProxy.log("stream async handler called: " + evt + toString());
+			JSProxy.log("Stream async handler called: " + evt +" "+ toString());
 		
 		}
 		
 		protected function onStreamIOError(evt:IOErrorEvent):void
 		{
-			JSProxy.log("stream error handler called: " + evt + toString());
+			JSProxy.log("Stream error handler called: " + evt +" "+ toString());
 		
 		}
 		

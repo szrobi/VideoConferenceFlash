@@ -9,7 +9,9 @@
 			import flash.events.Event;
 			import flash.external.*;
 			import flash.system.Security;
+			import flash.utils.Dictionary;
 			import flash.utils.IDataOutput;
+			import mx.collections.ArrayList;
 			import mx.controls.Button;
 			import mx.core.FlexGlobals;
 			import mx.events.FlexEvent;
@@ -19,6 +21,7 @@
 			private var connectionToken:String;
 			private var rtmpUrl:String;
 			private var notifyJS:Boolean;
+			private var streamsPlayed:Dictionary;
 			public static var instance:eu.marbledigital.videoconference.VideoContainer;
 			
 			
@@ -44,8 +47,10 @@
 				userId = params.userId || 6;
 				userName = params.userName || "admin";
 				notifyJS = params.notifyJS;
-				connectionToken = params.connectionToken;
+				//connectionToken = params.connectionToken;
 				rtmpUrl = params.rtmpUrl || "rtmp://localhost/VideoConferenceStreaming/38";
+				streamsPlayed = new Dictionary();
+				
 				
 				JSProxy.log("Parameters parsed.");
 				
@@ -70,7 +75,6 @@
 					ui.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
 							source.publishStream(rtmpUrl, userId, roomToken);
-							JSProxy.event("publishingasdasd", null);
 							JSProxy.log("Publishing stream");
 						});
 					mainPanel.addElement(ui);
@@ -84,17 +88,25 @@
 			
 			public function playStream(userId:int, userName:String):void
 			{
+				if (this.userId == userId) { return; }
+				
 				try
 				{
+					
 					var loopbackUi:StreamerUI = new StreamerUI();
 					var loopbackSource:VideoSource = new VideoSource(this, loopbackUi);
 					loopbackUi.init(this, loopbackSource, userId, userName, loopbackSource.isCameraSupported());
 					
 					loopbackUi.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
-							loopbackSource.playStream(rtmpUrl, userId,roomToken);
+							if(streamsPlayed[userId]==null){
+							loopbackSource.playStream(rtmpUrl, userId, roomToken);
 							loopbackUi.setCameraSize(640, 480);
+							//hozzáadás a dictionary-hez
+							streamsPlayed[userId] = StreamerUI.uiInstance;
+							JSProxy.log("Dictionary: " + streamsPlayed[userId]);
 							JSProxy.log("Playing stream");
+							}
 						});
 					
 					mainPanel.addElement(loopbackUi);

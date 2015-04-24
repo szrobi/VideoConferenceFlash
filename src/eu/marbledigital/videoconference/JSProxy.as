@@ -25,10 +25,10 @@ package eu.marbledigital.videoconference
 		// todo: external event handler binding
 		public static function event(message:String, param:String):void
 		{
-			if (ExternalInterface.available)
+			/*if (ExternalInterface.available)
 			{
 				ExternalInterface.call("videoConferenceEvent", message, param);
-			}
+			}*/
 		}
 	
 	}

@@ -24,9 +24,9 @@
 			trace("bandwidth = " + data.kbitDown + " Kbps.");
 		}
 		
-		public function userConnected(userId:int,userName:String):void {
-			JSProxy.log(userId + "ez a user id");
-			VideoContainer.instance.playStream(userId,userName);
+		public function userConnected(userId:int, username:String):void {
+			JSProxy.log(userId + "ez a user id" + username);
+			VideoContainer.instance.playStream(userId,username);
 		}
 	}
 
