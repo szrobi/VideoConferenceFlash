@@ -13,7 +13,6 @@
 			private var userId:int;
 			private var userName:String;
 			private var videoSource:VideoSource;
-			public static var uiInstance:eu.marbledigital.videoconference.StreamerUI;
 			
 			private var videoContainer:VideoContainer;
 			
@@ -23,7 +22,6 @@
 				this.userName = userName;
 				this.userId = userId;
 				this.videoSource = videoSource;
-				uiInstance = this;
 			}
 			
 			public function onCreationComplete():void

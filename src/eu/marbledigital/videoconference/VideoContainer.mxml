@@ -103,7 +103,7 @@
 							loopbackSource.playStream(rtmpUrl, userId, roomToken);
 							loopbackUi.setCameraSize(640, 480);
 							//hozzáadás a dictionary-hez
-							streamsPlayed[userId] = StreamerUI.uiInstance;
+							streamsPlayed[userId] = loopbackUi;
 							JSProxy.log("Dictionary: " + streamsPlayed[userId]);
 							JSProxy.log("Playing stream");
 							}
