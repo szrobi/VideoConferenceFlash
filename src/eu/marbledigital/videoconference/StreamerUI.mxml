@@ -54,6 +54,11 @@
 				
 				nameLabel.text = userName;
 			}
+			
+			public function destroy(): void
+			{
+				videoSource.destroy();
+			}
 		]]>
 	</fx:Script>
 	<fx:Declarations>

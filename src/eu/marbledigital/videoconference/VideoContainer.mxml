@@ -7,7 +7,11 @@
 	<fx:Script>
 		<![CDATA[
 			import flash.events.Event;
+			import flash.events.SyncEvent;
 			import flash.external.*;
+			import flash.net.NetConnection;
+			import flash.net.Responder;
+			import flash.net.SharedObject;
 			import flash.system.Security;
 			import flash.utils.Dictionary;
 			import flash.utils.IDataOutput;
@@ -18,12 +22,14 @@
 			private var roomToken:String;
 			private var userId:int;
 			private var userName:String;
+			private var roomId:String;
 			private var connectionToken:String;
 			private var rtmpUrl:String;
 			private var notifyJS:Boolean;
 			private var streamsPlayed:Dictionary;
 			public static var instance:eu.marbledigital.videoconference.VideoContainer;
 			
+			private var netConnection:NetConnection;
 			
 			public function videoConferenceApplicationCompleteHandler(event:Event):void
 			{
@@ -44,24 +50,54 @@
 			{
 				var params:Object = FlexGlobals.topLevelApplication.parameters;
 				roomToken = params.roomToken;
-				userId = params.userId || 6;
-				userName = params.userName || "admin";
+				userId = params.userId || 2;
+				userName = params.userName || "pezia";
 				notifyJS = params.notifyJS;
 				//connectionToken = params.connectionToken;
-				rtmpUrl = params.rtmpUrl || "rtmp://localhost/VideoConferenceStreaming/38";
-				streamsPlayed = new Dictionary();
+				rtmpUrl = params.rtmpUrl || "rtmp://192.168.0.20/VideoConferenceStreaming/1";
 				
+				roomId = rtmpUrl.substring(rtmpUrl.lastIndexOf('/') + 1);
+				
+				streamsPlayed = new Dictionary();
 				
 				JSProxy.log("Parameters parsed.");
 				
-
-				
 				JSProxy.event("InitComplete", null);
-				ExternalInterface.addCallback("publishWebcam", publishWebcam);
-				ExternalInterface.addCallback("playStream", playStream);
-				if(notifyJS){
-				ExternalInterface.call('flashReady');
+				
+				this.connect();
+				
+				if (ExternalInterface.available)
+				{
+					ExternalInterface.addCallback("publishWebcam", publishWebcam);
+					ExternalInterface.addCallback("playStream", playStream);
 				}
+			}
+			
+			public function connect():void
+			{
+				try
+				{
+					if (netConnection != null)
+					{
+						netConnection.removeEventListener(NetStatusEvent.NET_STATUS, onConnectionStatus);
+						netConnection.removeEventListener(AsyncErrorEvent.ASYNC_ERROR, onConnectionAsyncError);
+						netConnection.removeEventListener(IOErrorEvent.IO_ERROR, onConnectionIOError);
+						netConnection.close();
+					}
+				}
+				catch (e:Error)
+				{
+					JSProxy.log("NetConnection close failed: " + e.message);
+				}
+				
+				netConnection = new NetConnection();
+				
+				netConnection.client = new Client();
+				netConnection.objectEncoding = ObjectEncoding.AMF3;
+				netConnection.addEventListener(NetStatusEvent.NET_STATUS, onConnectionStatus);
+				netConnection.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onConnectionAsyncError);
+				netConnection.addEventListener(IOErrorEvent.IO_ERROR, onConnectionIOError);
+				netConnection.connect(rtmpUrl, {user_Id: userId, room_Token: roomToken});
 			}
 			
 			public function publishWebcam():void
@@ -70,7 +106,7 @@
 				try
 				{
 					var ui:StreamerUI = new StreamerUI();
-					var source:VideoSource = new VideoSource(this, ui);
+					var source:VideoSource = new VideoSource(this, ui, netConnection);
 					ui.init(this, source, userId, userName, source.isCameraSupported());
 					ui.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
@@ -88,25 +124,26 @@
 			
 			public function playStream(userId:int, userName:String):void
 			{
-				if (this.userId == userId) { return; }
+				if (this.userId == userId || streamsPlayed[userId] != null)
+				{
+					JSProxy.log("Skipping user " + userId + " play, already playing");
+					return;
+				}
 				
 				try
 				{
 					
 					var loopbackUi:StreamerUI = new StreamerUI();
-					var loopbackSource:VideoSource = new VideoSource(this, loopbackUi);
+					var loopbackSource:VideoSource = new VideoSource(this, loopbackUi, netConnection);
 					loopbackUi.init(this, loopbackSource, userId, userName, loopbackSource.isCameraSupported());
 					
 					loopbackUi.addEventListener(FlexEvent.READY, function(evt:FlexEvent):void
 						{
-							if(streamsPlayed[userId]==null){
 							loopbackSource.playStream(rtmpUrl, userId, roomToken);
 							loopbackUi.setCameraSize(640, 480);
 							//hozzáadás a dictionary-hez
 							streamsPlayed[userId] = loopbackUi;
-							JSProxy.log("Dictionary: " + streamsPlayed[userId]);
 							JSProxy.log("Playing stream");
-							}
 						});
 					
 					mainPanel.addElement(loopbackUi);
@@ -116,6 +153,50 @@
 					JSProxy.log("Unable to play stream: " + ex);
 					JSProxy.log(ex.getStackTrace());
 				}
+			}
+			
+			public function removeStream(userId:int):void
+			{
+				if(streamsPlayed[userId] != null) {
+					mainPanel.removeElement(streamsPlayed[userId]);
+					streamsPlayed[userId].destroy();
+					streamsPlayed[userId] = null;
+				}
+			}
+			
+			private function onConnectionStatus(event:NetStatusEvent):void
+			{
+				JSProxy.log("connectionStatusHandler: " + event.info.code);
+				
+				if (event.target != netConnection)
+				{
+					return;
+				}
+				
+				try
+				{
+					if (event.info.code == "NetConnection.Connect.Success")
+					{
+						if (notifyJS && ExternalInterface.available)
+						{
+							ExternalInterface.call('flashReady');
+						}
+					}
+				}
+				catch (ex:Error)
+				{
+					JSProxy.log("onConnectionStatus excepton: " + ex);
+				}
+			}
+			
+			protected function onConnectionAsyncError(event:AsyncErrorEvent):void
+			{
+				JSProxy.log("connectionAsyncError: " + event + " in " + this.toString());
+			}
+			
+			protected function onConnectionIOError(event:IOErrorEvent):void
+			{
+				JSProxy.log("connectionIOError: " + event + " in " + toString());
 			}
 		]]>
 	</fx:Script>

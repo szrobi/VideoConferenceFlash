@@ -54,10 +54,11 @@ package eu.marbledigital.videoconference
 		private var roomId:int;
 		private var roomToken:String;
 		
-		public function VideoSource(videoContainer:VideoContainer, streamerUi:StreamerUI)
+		public function VideoSource(videoContainer:VideoContainer, streamerUi:StreamerUI,netConnection:NetConnection)
 		{
 			this.videoContainer = videoContainer;
 			this.streamerUi = streamerUi;
+			this.netConnection = netConnection;
 		}
 		
 		/**
@@ -73,10 +74,6 @@ package eu.marbledigital.videoconference
 					attachCamera(false);
 					netStream.close();
 				}
-				if (netConnection)
-				{
-					netConnection.close();
-				}
 				
 			}
 			catch (ex:Error)
@@ -85,7 +82,7 @@ package eu.marbledigital.videoconference
 			}
 		}
 		
-		public function publishStream(rtmpUrl:String,userId:int,roomToken:String):void
+		public function publishStream(rtmpUrl:String, userId:int, roomToken:String):void
 		{
 			this.userId = userId;
 			this.streamHandle = userId.toString();
@@ -129,10 +126,10 @@ package eu.marbledigital.videoconference
 			
 			microphone = createMicrophone();
 			
-			connect();
+			doStreaming();
 		}
 		
-		public function playStream(rtmpUrl:String, userId:int,roomToken:String):void
+		public function playStream(rtmpUrl:String, userId:int, roomToken:String):void
 		{
 			this.userId = userId;
 			this.rtmpUrl = rtmpUrl;
@@ -156,7 +153,8 @@ package eu.marbledigital.videoconference
 			dynSrc.streamItems = videoItems;
 			
 			streamerUi.display.source = dynSrc;
-			connect();
+			
+			doStreaming();
 		}
 		
 		private static function setCodecOnNs(netStream:NetStream):void
@@ -174,50 +172,40 @@ package eu.marbledigital.videoconference
 			}
 		}
 		
-		private function onConnectionStatus(event:NetStatusEvent):void
+		private function doStreaming():void
 		{
-			JSProxy.log("connectionStatusHandler: " + event.info.code);
-			
-			if (event.target != netConnection)
-			{
-				return;
-			}
-			
 			try
 			{
-				if (event.info.code == "NetConnection.Connect.Success")
+				netStream = new NetStream(netConnection);
+				
+				netStream.addEventListener(NetStatusEvent.NET_STATUS, onStreamStatus);
+				netStream.addEventListener(IOErrorEvent.IO_ERROR, onStreamIOError);
+				netStream.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onStreamAsyncError);
+				setCodecOnNs(netStream);
+				
+				if (isPublisher)
 				{
-					netStream = new NetStream(netConnection);
+					netStream.soundTransform = new SoundTransform();
+					netStream.publish(streamHandle, "live");
 					
-					netStream.addEventListener(NetStatusEvent.NET_STATUS, onStreamStatus);
-					netStream.addEventListener(IOErrorEvent.IO_ERROR, onStreamIOError);
-					netStream.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onStreamAsyncError);
-					setCodecOnNs(netStream);
+					cameraAttached = false;
+					attachCamera(true);
+					streamerUi.display.videoObject.visible = true;
 					
-					if (isPublisher)
-					{
-						netStream.soundTransform = new SoundTransform();
-						netStream.publish(streamHandle, "live");
-						
-						cameraAttached = false;
-						attachCamera(true);
-						streamerUi.display.videoObject.visible = true;
-						
-						microphoneAttached = false;
-						attachMicrophone(true);
-						
-						JSProxy.event("Publishing", null);
-					}
-					else
-					{
-						netStream.bufferTime = 0;
-						netStream.play(streamHandle, -1);
-						
-						streamerUi.display.videoObject.attachNetStream(netStream);
-						streamerUi.display.videoObject.visible = true;
-						
-						JSProxy.event("Playing", null);
-					}
+					microphoneAttached = false;
+					attachMicrophone(true);
+					
+					JSProxy.event("Publishing", null);
+				}
+				else
+				{
+					netStream.bufferTime = 0;
+					netStream.play(streamHandle, -1);
+					
+					streamerUi.display.videoObject.attachNetStream(netStream);
+					streamerUi.display.videoObject.visible = true;
+					
+					JSProxy.event("Playing", null);
 				}
 			}
 			catch (ex:Error)
@@ -229,16 +217,6 @@ package eu.marbledigital.videoconference
 		private function toString():String
 		{
 			return "VideoSource of userId: " + userId;
-		}
-		
-		protected function onConnectionAsyncError(event:AsyncErrorEvent):void
-		{
-			JSProxy.log("connectionAsyncError: " + event + " in " + this.toString());
-		}
-		
-		protected function onConnectionIOError(event:IOErrorEvent):void
-		{
-			JSProxy.log("connectionIOError: " + event + " in " + toString());
 		}
 		
 		private function connect():void
@@ -258,31 +236,6 @@ package eu.marbledigital.videoconference
 			{
 				JSProxy.log("NetStream close error: " + e.message);
 			}
-			
-			try
-			{
-				if (netConnection != null)
-				{
-					netConnection.removeEventListener(NetStatusEvent.NET_STATUS, onConnectionStatus);
-					netConnection.removeEventListener(AsyncErrorEvent.ASYNC_ERROR, onConnectionAsyncError);
-					netConnection.removeEventListener(IOErrorEvent.IO_ERROR, onConnectionIOError);
-					netConnection.close();
-				}
-			}
-			catch (e:Error)
-			{
-				JSProxy.log("NetConnection close failed: " + e.message);
-			}
-			
-			netConnection = new NetConnection();
-			
-			netConnection.client = new Client();
-			netConnection.objectEncoding = ObjectEncoding.AMF3;
-			netConnection.addEventListener(NetStatusEvent.NET_STATUS, onConnectionStatus);
-			netConnection.addEventListener(AsyncErrorEvent.ASYNC_ERROR, onConnectionAsyncError);
-			netConnection.addEventListener(IOErrorEvent.IO_ERROR, onConnectionIOError);
-			netConnection.connect(rtmpUrl,{user_Id:userId,room_Token:roomToken});
-	
 		}
 		
 		/**
@@ -290,22 +243,23 @@ package eu.marbledigital.videoconference
 		 */
 		private function onStreamStatus(evt:NetStatusEvent):void
 		{
-			if (evt.info.code == "NetStream.Publish.Start") {
-			JSProxy.event("Publishing", null);	
+			if (evt.info.code == "NetStream.Publish.Start")
+			{
+				JSProxy.event("Publishing", null);
 			}
-			JSProxy.log("Stream status handler called: " + evt.info.code +" "+ toString());
-			
+			JSProxy.log("Stream status handler called: " + evt.info.code + " " + toString());
+		
 		}
 		
 		protected function onStreamAsyncError(evt:IOErrorEvent):void
 		{
-			JSProxy.log("Stream async handler called: " + evt +" "+ toString());
+			JSProxy.log("Stream async handler called: " + evt + " " + toString());
 		
 		}
 		
 		protected function onStreamIOError(evt:IOErrorEvent):void
 		{
-			JSProxy.log("Stream error handler called: " + evt +" "+ toString());
+			JSProxy.log("Stream error handler called: " + evt + " " + toString());
 		
 		}
 		
